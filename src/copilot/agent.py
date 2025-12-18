@@ -123,17 +123,3 @@ def get_session(session_id: str) -> ChatAgent:
 def delete_session(session_id: str):
     sessions.pop(session_id)
 
-
-# 4. 测试
-if __name__ == "__main__":
-    queries = [
-        "2023乘以15等于多少",
-        # "今天美金汇率多少",
-        # "帮我调用计算器工具计算以下的数学表达式：2+3*4-5/2",
-        "HI,我是吴彦祖",
-        "我叫什么名字"
-    ]
-    import asyncio
-    agent = ChatAgent("123")
-    for query in queries:
-        agent.chat(query)
