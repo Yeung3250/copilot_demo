@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI对话助手</title>
+    <!-- 引入Markdown渲染库 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* 原有样式保持不变 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+        }
+        body {
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 700px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .chat-history {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background-color: #f5f5f5;
+        }
+        .message {
+            margin-bottom: 20px;
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 20px;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        .ai-message {
+            background-color: white;
+            color: #333;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .file-info {
+            font-size: 12px;
+            color: #e0e0e0;
+            margin-top: 8px;
+            word-break: break-all;
+            opacity: 0.8;
+        }
+        .chat-input-area {
+            display: flex;
+            padding: 16px;
+            border-top: 1px solid #eee;
+            align-items: center;
+            background-color: white;
+            flex-wrap: wrap;  /* 新增：允许换行 */
+            gap: 8px;  /* 新增：元素间距 */
+        }
+        #file-input {
+            display: none;
+        }
+        .file-btn {
+            padding: 8px 16px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 12px;
+            transition: background-color 0.2s;
+        }
+        .file-btn:hover {
+            background-color: #5a6268;
+        }
+        #message-input {
+            flex: 1;
+            padding: 12px 18px;
+            border: 1px solid #ddd;
+            border-radius: 24px;
+            outline: none;
+            font-size: 14px;
+            transition: border-color 0.2s;
+            min-width: 200px;  /* 新增：最小宽度 */
+        }
+        #message-input:focus {
+            border-color: #007bff;
+        }
+        #send-btn {
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            cursor: pointer;
+            margin-left: 12px;
+            transition: background-color 0.2s;
+        }
+        #send-btn:hover {
+            background-color: #0056b3;
+        }
+        .file-select-wrapper {
+            display: flex;
+            align-items: center;
+            max-width: 220px;
+            margin: 4px 0;  /* 新增：间距调整 */
+        }
+        .file-selected {
+            font-size: 12px;
+            color: #28a745;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .delete-file-btn {
+            width: 18px;
+            height: 18px;
+            line-height: 16px;
+            text-align: center;
+            background-color: #dc3545;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 4px;
+            display: inline-block;  /* 修改：默认显示 */
+            transition: background-color 0.2s;
+        }
+        .delete-file-btn:hover {
+            background-color: #c82333;
+        }
+        .files-container {  /* 新增：文件列表容器 */
+            display: flex;
+            flex-wrap: wrap;
+            width: 100%;
+            margin-top: 8px;
+        }
+        .chat-history::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-history::-webkit-scrollbar-thumb {
+            background-color: #ccc;
+            border-radius: 3px;
+        }
+        /* Markdown样式补充 */
+        .ai-message h1, .ai-message h2, .ai-message h3 {
+            margin: 10px 0;
+            font-size: 1.2em;
+        }
+        .ai-message ul, .ai-message ol {
+            margin: 10px 0 10px 20px;
+        }
+        .ai-message blockquote {
+            border-left: 3px solid #ddd;
+            padding-left: 10px;
+            margin: 10px 0;
+            color: #666;
+        }
+        .ai-message code {
+            background-color: #f0f0f0;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .ai-message strong {
+            font-weight: bold;
+        }
+        .ai-message em {
+            font-style: italic;
+        }
+        .ai-message a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .ai-message a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-history" id="chat-history">
+            <div class="message ai-message">你好！我是AI助手，有什么可以帮你的？也可以上传多个附件哦~</div>
+        </div>
+        <div class="chat-input-area">
+            <label for="file-input" class="file-btn">上传附件</label>
+            <input type="file" id="file-input" accept="*" multiple>  <!-- 新增multiple属性 -->
+            <div class="files-container" id="files-container"></div>  <!-- 新增：文件列表容器 -->
+            <input type="text" id="message-input" placeholder="请输入消息...">
+            <button id="send-btn">发送</button>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = window.location.origin;
+        let attachments = [];  // 修改为数组存储多个附件
+        // 生成会话ID，每次刷新页面会重新生成
+        let sessionId = generateSessionId();
+
+        // 生成唯一会话ID
+        function generateSessionId() {
+            return 'session_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+        }
+
+        // 获取DOM元素
+        const fileInput = document.getElementById("file-input");
+        const filesContainer = document.getElementById("files-container");  // 新增
+        const messageInput = document.getElementById("message-input");
+        const sendBtn = document.getElementById("send-btn");
+        const chatHistory = document.getElementById("chat-history");
+
+        // 处理文件选择与上传（修改为多文件）
+        fileInput.addEventListener("change", async (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) {
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                for (let i = 0; i < files.length; i++) {
+                    formData.append("files", files[i]);
+                }
+                const response = await fetch(`${baseUrl}/api/upload`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`接口返回错误：${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                // 添加到附件列表
+                attachments = [...attachments, ...data];
+                // 更新UI显示
+                renderFileList();
+            } catch (error) {
+                console.error("文件上传失败：", error);
+                alert("文件上传失败，请重试");
+            } finally {
+                // 重置输入，允许重复选择同一文件
+                fileInput.value = "";
+            }
+        });
+
+        // 渲染文件列表
+        function renderFileList() {
+            filesContainer.innerHTML = "";
+
+            attachments.forEach((file, index) => {
+                const fileWrapper = document.createElement("div");
+                fileWrapper.className = "file-select-wrapper";
+
+                const fileNameSpan = document.createElement("span");
+                fileNameSpan.className = "file-selected";
+                fileNameSpan.textContent = file.original_name;
+
+                const deleteBtn = document.createElement("span");
+                deleteBtn.className = "delete-file-btn";
+                deleteBtn.textContent = "×";
+                deleteBtn.onclick = () => deleteFile(index);
+
+                fileWrapper.appendChild(fileNameSpan);
+                fileWrapper.appendChild(deleteBtn);
+                filesContainer.appendChild(fileWrapper);
+            });
+        }
+
+        // 删除单个文件
+        async function deleteFile(index) {
+            const file = attachments[index];
+            if (!file) return;
+
+            try {
+                const response = await fetch(`${baseUrl}/api/delete-file`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ file_full_path: file.file_full_path })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`接口返回错误：${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                if (!data.success) {
+                    console.error("文件删除失败：", data.msg);
+                    alert(`删除失败：${data.msg}`);
+                }
+            } catch (error) {
+                console.error("调用删除接口失败：", error);
+                alert("删除接口调用失败，请检查后端服务！");
+            } finally {
+                // 从列表中移除
+                attachments.splice(index, 1);
+                renderFileList();
+            }
+        }
+
+        // 发送消息函数（修改为支持多附件和session_id）
+        async function sendMessage() {
+            const content = messageInput.value.trim();
+            if (!content && attachments.length === 0) {
+                alert("请输入消息或上传附件！");
+                return;
+            }
+
+            // 1. 显示用户消息
+            const userMessageDiv = document.createElement("div");
+            userMessageDiv.className = "message user-message";
+            userMessageDiv.textContent = content || "（仅上传附件）";
+
+            // 添加多个附件信息
+            if (attachments.length > 0) {
+                const filesInfoDiv = document.createElement("div");
+                filesInfoDiv.className = "file-info";
+                filesInfoDiv.textContent = `附件(${attachments.length个})：${attachments.map(f => f.original_name).join('、')}`;
+                userMessageDiv.appendChild(filesInfoDiv);
+            }
+
+            chatHistory.appendChild(userMessageDiv);
+
+            // 2. 准备发送的数据和清理状态
+            messageInput.value = "";
+            const tempAttachments = [...attachments];  // 复制当前附件列表
+            attachments = [];  // 清空附件
+            renderFileList();  // 更新UI
+
+            // 3. 创建AI回复元素
+            const aiMessageDiv = document.createElement("div");
+            aiMessageDiv.className = "message ai-message";
+            chatHistory.appendChild(aiMessageDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            try {
+                // 4. 调用流式接口，添加session_id参数
+                const response = await fetch(`${baseUrl}/api/chat`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        content: content,
+                        attachments: tempAttachments,  // 发送多个附件
+                        session_id: sessionId  // 添加会话ID参数
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`接口返回错误：${response.status} ${response.statusText}`);
+                }
+
+                // 5. 处理流式响应
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullResponse = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    // 解码并处理数据
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split("\n\n");
+
+                    for (const line of lines) {
+                        if (line) {
+                            const data = line.trim();
+                            if (data === "~end~") break;
+
+                            fullResponse += data;
+                            aiMessageDiv.innerHTML = marked.parse(fullResponse);
+                            chatHistory.scrollTop = chatHistory.scrollHeight;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("对话请求失败：", error);
+                aiMessageDiv.textContent = "抱歉，对话出错了，请重试！";
+            }
+        }
+
+        // 页面刷新或关闭时调用clean接口
+        window.addEventListener('beforeunload', async function() {
+            try {
+                await fetch(`${baseUrl}/api/clean`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionId
+                    }),
+                    // 使用keepalive确保请求在页面关闭前完成
+                    keepalive: true
+                });
+            } catch (error) {
+                console.error("调用clean接口失败：", error);
+            }
+        });
+
+        // 绑定事件
+        sendBtn.addEventListener("click", sendMessage);
+        messageInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

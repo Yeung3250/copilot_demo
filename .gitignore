@@ -1,0 +1,14 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+*.xml
+*.iml
+
+.env*
+*logs/
+*uploads/
+.venv
